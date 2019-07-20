@@ -1,0 +1,87 @@
+@using RazorEngine;
+@using DbModels;
+@inherits RazorEngine.Templating.TemplateBase<GenerateModel>
+@using System.Text;
+@{
+    //语言
+    Model.Config.Language = Languages.CSharp;
+
+    //=========================配置开始=========================================
+
+    //5、如果没有数据表过来，则提示
+    if(Model.LisAllTableInfos.Count<=0)
+    {
+<c>请选择待生成的数据库</c>
+        return;
+    }
+
+    //1、配置是否使用
+    Model.Config.IsSingleFile = true;
+    //2、输出文件后缀
+    Model.Config.OutFileSuffix = ".cs";
+
+
+    //3、输出文件名称
+    Model.Config.OutFileName = "DbContext";
+
+    //=========================配置结束=========================================
+    string className = "DbContext";
+
+}<c>using SqlSugar;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace @Model.NameSpace
+$|
+    public class @className<c_T> where T : class, new()
+    $|
+        public @className$$()
+        $|
+            Db = new SqlSugarClient(new ConnectionConfig()
+            $|
+                ConnectionString = "@Model.ConnectionString",
+@switch (Model.DbTypes)
+{
+    case DbTypes.Mysql:
+<c>                DbType = DbType.MySql,</c>
+        break;
+    case DbTypes.Sqlite:
+<c>                DbType = DbType.Sqlite,</c>
+        break;
+    case DbTypes.MsSql:
+<c>                DbType = DbType.SqlServer,</c>
+        break;
+    case DbTypes.Oracle:
+<c>                DbType = DbType.Oracle,</c>
+        break;
+    default:
+        break;
+}
+                InitKeyType = InitKeyType.Attribute,//从特性读取主键和自增列信息
+                IsAutoCloseConnection = true,//开启自动释放模式和EF原理一样我就不多解释了
+
+            $||);
+#if DEBUG
+            //调式代码 用来打印SQL 
+            Db.Aop.OnLogExecuting = (sql, pars) =>
+            $|
+                Console.WriteLine(sql + "\r\n" +
+                    Db.Utilities.SerializeObject(pars.ToDictionary(it => it.ParameterName, it => it.Value)));
+                Console.WriteLine();
+            $||;
+#endif //DEBUG
+
+        $||
+
+        /// <c_summary>
+        /// 用来处理事务多表查询和复杂的操作
+        /// </c_summary>
+        public SqlSugarClient Db;
+        public SimpleClient<c_T> CurrentDb $| get $| return new SimpleClient<c_T>(Db); $|| $||
+
+
+    $||
+$||
+</c>

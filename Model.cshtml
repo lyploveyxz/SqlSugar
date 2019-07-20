@@ -1,0 +1,115 @@
+@using RazorEngine;
+@using DbModels;
+@inherits RazorEngine.Templating.TemplateBase<GenerateModel>
+@using System.Text;
+@{
+    //语言
+    Model.Config.Language = Languages.CSharp;
+
+    //=========================配置开始=========================================
+
+    string _outfilename = Model.TableName.ToTitleCase().Replace("_", "");
+
+    //1、配置是否使用
+    Model.Config.IsSingleFile = false;
+
+    //2、是否需要字段属性
+    bool IsNeedAttribute = true;
+
+    //3、输出文件后缀
+    Model.Config.OutFileSuffix = "Model.cs";
+
+    //4、输出文件名称
+    Model.Config.OutFileName = _outfilename;
+
+
+    //=========================配置结束=========================================
+    string firstUpperCaseTableName = _outfilename;
+
+    if (!Model.LisFields.Any(item => item.IsKey))
+    {
+        <c>EntityFrame Work 表实体必须需要一个键，请重新定义表结构，建议表加个guid或id。</c>
+        return;
+    }
+
+}<c>using System; 
+using System.Collections.Generic;
+using SqlSugar;
+
+namespace @Model.NameSpace$$.Model
+$|    
+    [SugarTable("@Model.TableName")]
+    public partial class @firstUpperCaseTableName$$Model
+    $| @{ 
+        //有多键
+        bool isHaveMultiKey = Model.LisFields.Where(item => item.IsKey).Count() > 1;
+    }
+        @foreach (var field in Model.LisFields)//循环表字段
+        {
+            string remark = string.IsNullOrWhiteSpace(field.Remark) ? field.ColName : field.Remark;
+
+
+<c>        /// <c_summary> 
+        /// @remark.ReplaceFirstRowStr("        /// ")
+        /// </c_summary> </c>
+
+            //需要Attribute
+            if (IsNeedAttribute)
+            {
+<c>        @GetAttribute(field)</c>
+            }
+
+            //生成主体字段
+<c>        public @field.CSharpCanNullableFiled @field.ColName $| get; set; $||
+</c>
+        }
+
+@functions{
+
+    string GetAttribute(FieldInfo fieldInfo)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append("[SugarColumn(");
+        List<string> lisFiels = new List<string>();
+        if (fieldInfo.IsKey)
+        {
+            lisFiels.Add("IsPrimaryKey = true");
+        }
+        if (fieldInfo.IsIdentification)
+        {
+            lisFiels.Add("IsIdentity = true");
+        }
+        if (!string.IsNullOrWhiteSpace(fieldInfo.FiledType))
+        {
+            lisFiels.Add(string.Format("ColumnDataType =\"{0}\"", fieldInfo.FiledType));
+        }
+
+
+        if (fieldInfo.Length > 0)
+        {
+            lisFiels.Add(string.Format("Length = {0} ", fieldInfo.Length));
+        }
+        if (fieldInfo.IsNotNull)
+        {
+            lisFiels.Add(string.Format("IsNullable = {0} ", "false"));
+        }
+        else
+        {
+            lisFiels.Add(string.Format("IsNullable = {0} ", "true"));
+        }
+
+        //ColumnName =
+        //IsIgnore=
+        if (!string.IsNullOrWhiteSpace(fieldInfo.Remark))
+        {
+            lisFiels.Add(string.Format("ColumnDescription =\"{0}\"", fieldInfo.Remark));
+        }
+
+        sb.Append(string.Join(" , ", lisFiels));
+        sb.Append(")]");
+        return sb.ToString();
+    }
+}
+    }
+}
+

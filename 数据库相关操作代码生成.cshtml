@@ -1,0 +1,51 @@
+@using RazorEngine;
+@using DbModels;
+@inherits RazorEngine.Templating.TemplateBase<GenerateModel>
+@using System.Text;
+@{
+    //=========================配置开始=========================================
+    //1、是不是单一文件，假如使用数据库批量生成，就设置成为false，不使用数据库，应设置成true
+    Model.Config.IsSingleFile = true;
+
+    //2、输出文件名
+    Model.Config.OutFileName = "数据库相关操作代码生成";
+
+    //3、输出文件后缀
+    Model.Config.OutFileSuffix = ".cs";
+
+
+    //=========================配置结束=========================================
+}
+
+//=====================1、配置=======================================
+
+SqlSugarClient db = new SqlSugarClient(new ConnectionConfig()
+{
+                ConnectionString = "@Model.ConnectionString",
+@switch (Model.DbTypes)
+{
+    case DbTypes.Mysql:
+<c>                DbType = DbType.MySql,</c>
+        break;
+    case DbTypes.Sqlite:
+<c>                DbType = DbType.Sqlite,</c>
+        break;
+    case DbTypes.MsSql:
+<c>                DbType = DbType.SqlServer,</c>
+        break;
+    case DbTypes.Oracle:
+<c>                DbType = DbType.Oracle,</c>
+        break;
+    default:
+        break;
+}
+                IsAutoCloseConnection = true,
+                InitKeyType = InitKeyType.Attribute
+ });
+
+
+//=====================2、代码生成初始化数据库=======================================
+@{ 
+    string types = string.Join(",", Model.LisAllTableInfos.Select(item => string.Format("typeof({0})", item.TableName)));
+}
+db.CodeFirst.BackupTable().InitTables(@types);

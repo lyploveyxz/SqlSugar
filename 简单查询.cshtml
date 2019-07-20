@@ -1,0 +1,122 @@
+@using RazorEngine;
+@using DbModels;
+@inherits RazorEngine.Templating.TemplateBase<GenerateModel>
+@using System.Text;
+@{
+    //=========================配置开始=========================================
+    //1、是不是单一文件，假如使用数据库批量生成，就设置成为false，不使用数据库，应设置成true
+    Model.Config.IsSingleFile = false;
+
+    //2、输出文件名
+    Model.Config.OutFileName = Model.TableName;
+
+    //3、输出文件后缀
+    Model.Config.OutFileSuffix = ".cs";
+
+    string modelName = Model.TableName.ToTitleCase().Replace("_", "") + "Model";
+
+
+    //=========================配置结束=========================================
+    string mainkey = "查询主键字段";
+    if (Model.GetIdentificationField() != null)
+    {
+        mainkey = Model.GetIdentificationField().ColName;
+    }
+    string stringField = "FieldName";
+    foreach (var field in Model.LisFields)
+    {
+        if(field.DbField2CSharp.CSharpFiled.Equals("string",StringComparison.OrdinalIgnoreCase))
+        {
+            stringField = field.ColName;
+            break;
+        }
+    }
+
+
+    string dbname = System.Text.RegularExpressions.Regex.Replace(Model.DbName.ToTitleCase(), @"[^\w]+", "");
+    string className = dbname.Replace("_", "") + "DbContext";
+
+    //实体名
+    string tableNameFirstUpper = Model.TableName.ToTitleCase().Replace("_", "");
+    string setModelName = tableNameFirstUpper;
+    if (tableNameFirstUpper.EndsWith("s", StringComparison.OrdinalIgnoreCase))
+    {
+        tableNameFirstUpper += "es";
+    } else
+    {
+        tableNameFirstUpper += "s";
+    }
+    }
+★★★★★★★★★★
+//使用以下方法，必须生成“DbContext直接生成.cshtml”
+并且实例化
+@className dbContext = new @className$$();	
+★★★★★★★★★★
+
+//=====================1、查询所有=======================================
+  var list = dbContext.@tableNameFirstUpper$$.ToList();
+
+
+//=====================2、按主键查询=======================================
+ var getById = dbContext.@tableNameFirstUpper$$.InSingle(这里输入主键的查询值);//没有找到，返回null
+    
+    
+//=====================3、Where查询=======================================
+var getByWhere = dbContext.@tableNameFirstUpper$$.Where(it => it.@mainkey == 1).ToList();//根据条件查询
+
+
+//=====================4、分页查询=======================================
+var total = 0;//总条码
+var getpage = dbContext.@tableNameFirstUpper$$.Where(it => it.@mainkey == 1).ToPageList(1, 2, ref total);//根据分页查询
+
+
+//=====================5、查询前5条=======================================
+var getById = dbContext.@tableNameFirstUpper$$.Cdcinfos.Take(5);
+
+
+//=====================6、查询单条没有数据返回NULL, Single超过1条会报错，First不会=======================================
+var getModel = dbContext.@tableNameFirstUpper$$.Single(item=>item.@mainkey==3);
+var getModel = dbContext.@tableNameFirstUpper$$.First(item=>item.@mainkey==3);
+
+
+//=====================7、UNION ALL合并=======================================
+var models = dbContext.Db.UnionAll(dbContext.@tableNameFirstUpper$$.Where(item=>item.Id < 10), dbContext. @tableNameFirstUpper$$.Where(item => item.Id > 30)).ToList();
+
+//=====================8、IN查询=======================================
+var models = dbContext.@tableNameFirstUpper$$Cdcinfos.In(it => it.@mainkey, new int[]{ 1, 2, 3 }).ToList();
+
+//=====================9、NotIN查询=======================================
+int[] arrays = new int[] {1,2,3 };
+var models = dbContext.@tableNameFirstUpper$$.Where(item=>!arrays.Contains(item.@mainkey)).ToList();
+
+
+//=====================10、条件查询=======================================
+var getByWhere = dbContext.@tableNameFirstUpper$$.Where(it => it.@mainkey == 1 || it.@stringField == "a").ToList();
+var models = dbContext.@tableNameFirstUpper$$.Where(item=>SqlFunc.Contains(item.@mainkey,"1")).ToList();
+var models = dbContext.@tableNameFirstUpper$$.Where(item=>!SqlFunc.IsNullOrEmpty(item.@stringField)).ToList();
+
+
+//=====================11、可以使用 SUM MAX MIN AVG查询单个字段=======================================
+var sum = dbContext.@tableNameFirstUpper$$.Where(item => item.@mainkey < 5).Sum(item => item.@mainkey);
+
+//=====================12、Between =======================================
+var models = dbContext.@tableNameFirstUpper$$.Where(item => SqlFunc.Between(item.@mainkey, 1, 4)).ToList();
+
+//=====================13、排序 =======================================
+var models = dbContext.@tableNameFirstUpper$$.OrderBy(item=>item.@mainkey, OrderByType.Asc).ToList();
+var models = dbContext.@tableNameFirstUpper$$.OrderBy(item=>item.@mainkey, OrderByType.Desc).ToList();
+var models = dbContext.@tableNameFirstUpper$$.OrderBy(item=>item.@mainkey, OrderByType.Desc).OrderBy(item=>item.@stringField,OrderByType.Desc).ToList();
+
+//=====================14、是否存在 =======================================
+bool IsExit = dbContext.@tableNameFirstUpper$$.Any(item => item.@mainkey == 1);
+
+
+
+
+
+
+
+
+
+
+
